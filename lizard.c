@@ -62,12 +62,12 @@ void * lizardThread( void * param );
  * be simulated.
  * Try 30 for development and 120 for more thorough testing.
  */
-#define WORLDEND             30
+#define WORLDEND             120
 
 /*
  * Number of lizard threads to create
  */
-#define NUM_LIZARDS          40
+#define NUM_LIZARDS          20
 
 /*
  * Maximum lizards crossing at once before alerting cats
@@ -93,7 +93,7 @@ void * lizardThread( void * param );
 /*
  * Declare global variables here
  */
-sem_t road_mutex, cross_mutex;
+sem_t road_mutex, cross_mutex; //TODO: Add comment
 
 
 /**************************************************/
@@ -127,7 +127,9 @@ int main(int argc, char **argv)
      * Declare local variables
      */
 
-    //TODO: Implement main according to comments
+    int i,j;
+    pthread_t lizards[NUM_LIZARDS];
+
     /*
      * Check for the debugging flag (-d)
      */
@@ -156,20 +158,14 @@ int main(int argc, char **argv)
      */
     sem_init(&road_mutex, 0, MAX_LIZARD_CROSSING);
     sem_init(&cross_mutex, 0, MAX_LIZARD_CROSSING);
-    if (debug) {
-        int v;
-        sem_getvalue(&road_mutex, &v);
-        printf("Semval %d\n", v);
-        fflush(stdout);
-    }
+
 
 
     /*
      * Create NUM_LIZARDS lizard threads
      */
-    int i,j;
+
     j = 1;
-    pthread_t lizards[NUM_LIZARDS];
     for( i = 0; i < NUM_LIZARDS; i++){
         pthread_create(&lizards[i], NULL, &lizardThread, (void *)(intptr_t)j);
         j++;
@@ -205,6 +201,7 @@ int main(int argc, char **argv)
      */
 
     sem_destroy(&road_mutex);
+    sem_destroy(&cross_mutex);
 
     /*
      * Exit happily
@@ -260,7 +257,7 @@ void * lizardThread( void * param ) {
         lizard_sleep(num);
 
         sago_2_monkeyGrass_is_safe(num);
-        cross_sago_2_monkeyGrass(num);
+        cross_sago_2_monkeyGrass(num); //TODO: Add comment?
         made_it_2_monkeyGrass(num);
 
         lizard_eat(num);
@@ -314,9 +311,6 @@ void lizard_sleep(int num)
  * facilities (lock/semaphore) here.
  * input: lizard number
  * output: N/A
- * Status: Incomplete - Make changes as you see are necessary.
- * TODO: Monkey grass is safe?
-
  */
 void sago_2_monkeyGrass_is_safe(int num)
 {
@@ -326,7 +320,7 @@ void sago_2_monkeyGrass_is_safe(int num)
         fflush( stdout );
     }
 
-    sem_wait(&road_mutex);
+    sem_wait(&road_mutex); //TODO: Add comment
 
 
     if (debug)
@@ -344,8 +338,6 @@ void sago_2_monkeyGrass_is_safe(int num)
  * the monkey grass.
  * input: lizard number
  * output: N/A
- * Status: Incomplete - Make changes as you see are necessary.
- * TODO: Cross from sago to grass.
  */
 void cross_sago_2_monkeyGrass(int num)
 {
@@ -359,26 +351,18 @@ void cross_sago_2_monkeyGrass(int num)
     /*
      * One more crossing this way
      */
-    sem_wait(&cross_mutex); //Prevent counter mismatch.
-
+    sem_wait(&cross_mutex); //TODO: Add comment - Prevent counter mismatch.
     numCrossingSago2MonkeyGrass++;
-
-    sem_post(&cross_mutex); //Release counter
+    sem_post(&cross_mutex); //TODO: Add comment - Release counter
 
     /*
      * Check for too many lizards crossing
      */
     if (numCrossingSago2MonkeyGrass + numCrossingMonkeyGrass2Sago > MAX_LIZARD_CROSSING)
     {
-        if (debug) {
-            int v;
-            sem_getvalue(&road_mutex, &v);
-            printf("Semval %d\n", v);
-            fflush(stdout);
-        }
+
         printf( "\tThe cats are happy - they have toys.\n" );
         printf( "\t%d crossing sago -> monkey grass\n", numCrossingSago2MonkeyGrass );
-        printf( "\t%d crossing monkey grass -> sago\n", numCrossingMonkeyGrass2Sago );
         exit( -1 );
     }
 
@@ -402,11 +386,11 @@ void cross_sago_2_monkeyGrass(int num)
     /*
      * That one seems to have made it
      */
-    sem_wait(&cross_mutex);
+    sem_wait(&cross_mutex);//TODO: Add comment
 
     numCrossingSago2MonkeyGrass--;
 
-    sem_post(&cross_mutex);
+    sem_post(&cross_mutex);//TODO: Add comment
 }
 
 
@@ -417,11 +401,10 @@ void cross_sago_2_monkeyGrass(int num)
  * input: lizard number
  * output: N/A
  * Status: Incomplete - Make changes as you see are necessary.
- * TODO: Successfully made it to monkey grass. Send wake signal?
  */
 void made_it_2_monkeyGrass(int num)
 {
-    sem_post(&road_mutex);
+    sem_post(&road_mutex);//TODO: Add comment
     /*
      * Whew, made it across
      */
@@ -429,14 +412,6 @@ void made_it_2_monkeyGrass(int num)
     {
         printf( "[%2d] made the  sago -> monkey grass  crossing\n", num );
         fflush( stdout );
-    }
-
-
-    if (debug) {
-        int v;
-        sem_getvalue(&road_mutex, &v);
-        printf("Semval %d\n", v);
-        fflush(stdout);
     }
 
 
@@ -485,7 +460,6 @@ void lizard_eat(int num)
  * input: lizard number
  * output: N/A
  * Status: Incomplete - Make changes as you see are necessary.
- * TODO:    Return from sago. Is it safe?
  */
 void monkeyGrass_2_sago_is_safe(int num)
 {
@@ -495,7 +469,7 @@ void monkeyGrass_2_sago_is_safe(int num)
         fflush( stdout );
     }
 
-    sem_wait(&road_mutex);
+    sem_wait(&road_mutex);//TODO: Add comment
 
 
 
@@ -515,8 +489,6 @@ void monkeyGrass_2_sago_is_safe(int num)
  * grass to the sago.
  * input: lizard number
  * output: N/A
- * Status: Incomplete - Make changes as you see are necessary.
- * TODO: Cross from grass to sago.
  */
 void cross_monkeyGrass_2_sago(int num)
 {
@@ -531,24 +503,17 @@ void cross_monkeyGrass_2_sago(int num)
     /*
      * One more crossing this way
      */
-    sem_wait(&cross_mutex);
+    sem_wait(&cross_mutex);//TODO: Add comment
     numCrossingMonkeyGrass2Sago++;
-    sem_post(&cross_mutex);
+    sem_post(&cross_mutex);//TODO: Add comment
 
     /*
      * Check for too many lizards crossing
      */
     if (numCrossingMonkeyGrass2Sago + numCrossingSago2MonkeyGrass > MAX_LIZARD_CROSSING)
     {
-        if (debug) {
-            int v;
-            sem_getvalue(&road_mutex, &v);
-            printf("Semval %d\n", v);
-            fflush(stdout);
-        }
         printf( "\tThe cats say yum! - they love lizards.\n" );
         printf( "\t%d crossing monkey grass -> sago\n", numCrossingMonkeyGrass2Sago );
-        printf( "\t%d crossing sago -> monkey grass\n", numCrossingSago2MonkeyGrass );
         exit( -1 );
     }
 
@@ -571,9 +536,9 @@ void cross_monkeyGrass_2_sago(int num)
     /*
      * That one seems to have made it
      */
-    sem_wait(&cross_mutex);
+    sem_wait(&cross_mutex);//TODO: Add comment
     numCrossingMonkeyGrass2Sago--;
-    sem_post(&cross_mutex);
+    sem_post(&cross_mutex);//TODO: Add comment
 }
 
 
@@ -583,12 +548,10 @@ void cross_monkeyGrass_2_sago(int num)
  * Tells others they can go now
  * input: lizard number
  * output: N/A
- * Status: Incomplete - Make changes as you see are necessary.
- * TODO: Successfully made it to sago. Wake others?
  */
 void made_it_2_sago(int num)
 {
-    sem_post(&road_mutex);
+    sem_post(&road_mutex);//TODO: Add comment
     /*
      * Whew, made it across
      */
