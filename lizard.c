@@ -154,7 +154,12 @@ int main(int argc, char **argv)
      * Initialize locks and/or semaphores
      */
     sem_init(&mutex, 0, MAX_LIZARD_CROSSING);
-
+    if (debug) {
+        int v;
+        sem_getvalue(&mutex, &v);
+        printf("Semval %d\n", v);
+        fflush(stdout);
+    }
 
 
     /*
@@ -189,14 +194,15 @@ int main(int argc, char **argv)
 
 
 
-
+    for(i = 0; i < NUM_LIZARDS; i++)
+        pthread_join(lizards[i], NULL);
 
 
     /*
      * Delete the locks and semaphores
      */
 
-
+    sem_destroy(&mutex);
 
     /*
      * Exit happily
@@ -250,11 +256,13 @@ void * lizardThread( void * param ) {
          * are already completed - see the comments.
          */
         lizard_sleep(num);
-        monkeyGrass_2_sago_is_safe(num);
-        cross_sago_2_monkeyGrass(num);
-        lizard_eat(num);
         sago_2_monkeyGrass_is_safe(num);
+        cross_sago_2_monkeyGrass(num);
+        made_it_2_monkeyGrass(num);
+        lizard_eat(num);
+        monkeyGrass_2_sago_is_safe(num);
         cross_monkeyGrass_2_sago(num);
+        made_it_2_sago(num);
     }
 
 
@@ -313,6 +321,7 @@ void sago_2_monkeyGrass_is_safe(int num)
         fflush( stdout );
     }
 
+    sem_wait(&mutex);
 
 
 
@@ -354,14 +363,22 @@ void cross_sago_2_monkeyGrass(int num)
      */
     if (numCrossingSago2MonkeyGrass + numCrossingMonkeyGrass2Sago > MAX_LIZARD_CROSSING)
     {
+        if (debug) {
+            int v;
+            sem_getvalue(&mutex, &v);
+            printf("Semval %d\n", v);
+            fflush(stdout);
+        }
         printf( "\tThe cats are happy - they have toys.\n" );
         printf( "\t%d crossing sago -> monkey grass\n", numCrossingSago2MonkeyGrass );
+        printf( "\t%d crossing monkey grass -> sago\n", numCrossingMonkeyGrass2Sago );
         exit( -1 );
     }
 
     /*
      * Check for lizards cross both ways
      */
+
     if (numCrossingMonkeyGrass2Sago && UNIDIRECTIONAL)
     {
         printf( "\tCrash!  We have a pile-up on the concrete.\n" );
@@ -393,6 +410,7 @@ void cross_sago_2_monkeyGrass(int num)
  */
 void made_it_2_monkeyGrass(int num)
 {
+    sem_post(&mutex);
     /*
      * Whew, made it across
      */
@@ -403,7 +421,12 @@ void made_it_2_monkeyGrass(int num)
     }
 
 
-
+    if (debug) {
+        int v;
+        sem_getvalue(&mutex, &v);
+        printf("Semval %d\n", v);
+        fflush(stdout);
+    }
 
 
 }
@@ -461,7 +484,7 @@ void monkeyGrass_2_sago_is_safe(int num)
         fflush( stdout );
     }
 
-
+    sem_wait(&mutex);
 
 
 
@@ -502,8 +525,10 @@ void cross_monkeyGrass_2_sago(int num)
      */
     if (numCrossingMonkeyGrass2Sago + numCrossingSago2MonkeyGrass > MAX_LIZARD_CROSSING)
     {
+
         printf( "\tThe cats say yum! - they love lizards.\n" );
         printf( "\t%d crossing monkey grass -> sago\n", numCrossingMonkeyGrass2Sago );
+        printf( "\t%d crossing sago -> monkey grass\n", numCrossingSago2MonkeyGrass );
         exit( -1 );
     }
 
@@ -549,7 +574,7 @@ void made_it_2_sago(int num)
         printf( "[%2d] made the  monkey grass -> sago  crossing\n", num );
         fflush( stdout );
     }
-
+    sem_post(&mutex);
 
 
 
