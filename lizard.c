@@ -62,12 +62,12 @@ void * lizardThread( void * param );
  * be simulated.
  * Try 30 for development and 120 for more thorough testing.
  */
-#define WORLDEND             30
+#define WORLDEND             120
 
 /*
  * Number of lizard threads to create
  */
-#define NUM_LIZARDS          40
+#define NUM_LIZARDS          20
 
 /*
  * Maximum lizards crossing at once before alerting cats
@@ -127,6 +127,10 @@ int main(int argc, char **argv)
      * Declare local variables
      */
 
+    int i,j;
+    pthread_t lizards[NUM_LIZARDS];
+
+
     //TODO: Implement main according to comments
     /*
      * Check for the debugging flag (-d)
@@ -156,20 +160,14 @@ int main(int argc, char **argv)
      */
     sem_init(&road_mutex, 0, MAX_LIZARD_CROSSING);
     sem_init(&cross_mutex, 0, MAX_LIZARD_CROSSING);
-    if (debug) {
-        int v;
-        sem_getvalue(&road_mutex, &v);
-        printf("Semval %d\n", v);
-        fflush(stdout);
-    }
+
 
 
     /*
      * Create NUM_LIZARDS lizard threads
      */
-    int i,j;
+
     j = 1;
-    pthread_t lizards[NUM_LIZARDS];
     for( i = 0; i < NUM_LIZARDS; i++){
         pthread_create(&lizards[i], NULL, &lizardThread, (void *)(intptr_t)j);
         j++;
@@ -205,6 +203,7 @@ int main(int argc, char **argv)
      */
 
     sem_destroy(&road_mutex);
+    sem_destroy(&cross_mutex);
 
     /*
      * Exit happily
@@ -370,15 +369,9 @@ void cross_sago_2_monkeyGrass(int num)
      */
     if (numCrossingSago2MonkeyGrass + numCrossingMonkeyGrass2Sago > MAX_LIZARD_CROSSING)
     {
-        if (debug) {
-            int v;
-            sem_getvalue(&road_mutex, &v);
-            printf("Semval %d\n", v);
-            fflush(stdout);
-        }
+
         printf( "\tThe cats are happy - they have toys.\n" );
         printf( "\t%d crossing sago -> monkey grass\n", numCrossingSago2MonkeyGrass );
-        printf( "\t%d crossing monkey grass -> sago\n", numCrossingMonkeyGrass2Sago );
         exit( -1 );
     }
 
@@ -429,14 +422,6 @@ void made_it_2_monkeyGrass(int num)
     {
         printf( "[%2d] made the  sago -> monkey grass  crossing\n", num );
         fflush( stdout );
-    }
-
-
-    if (debug) {
-        int v;
-        sem_getvalue(&road_mutex, &v);
-        printf("Semval %d\n", v);
-        fflush(stdout);
     }
 
 
@@ -540,15 +525,8 @@ void cross_monkeyGrass_2_sago(int num)
      */
     if (numCrossingMonkeyGrass2Sago + numCrossingSago2MonkeyGrass > MAX_LIZARD_CROSSING)
     {
-        if (debug) {
-            int v;
-            sem_getvalue(&road_mutex, &v);
-            printf("Semval %d\n", v);
-            fflush(stdout);
-        }
         printf( "\tThe cats say yum! - they love lizards.\n" );
         printf( "\t%d crossing monkey grass -> sago\n", numCrossingMonkeyGrass2Sago );
-        printf( "\t%d crossing sago -> monkey grass\n", numCrossingSago2MonkeyGrass );
         exit( -1 );
     }
 
