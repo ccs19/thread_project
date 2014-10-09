@@ -125,9 +125,7 @@ int main(int argc, char **argv)
      * Declare local variables
      */
 
-
-
-
+    //TODO: Implement main according to comments
     /*
      * Check for the debugging flag (-d)
      */
@@ -310,6 +308,8 @@ void lizard_sleep(int num)
  * input: lizard number
  * output: N/A
  * Status: Incomplete - Make changes as you see are necessary.
+ * TODO: Monkey grass is safe?
+
  */
 void sago_2_monkeyGrass_is_safe(int num)
 {
@@ -340,6 +340,7 @@ void sago_2_monkeyGrass_is_safe(int num)
  * input: lizard number
  * output: N/A
  * Status: Incomplete - Make changes as you see are necessary.
+ * TODO: Cross from sago to grass.
  */
 void cross_sago_2_monkeyGrass(int num)
 {
@@ -394,6 +395,7 @@ void cross_sago_2_monkeyGrass(int num)
  * input: lizard number
  * output: N/A
  * Status: Incomplete - Make changes as you see are necessary.
+ * TODO: Successfully made it to monkey grass. Send wake signal?
  */
 void made_it_2_monkeyGrass(int num)
 {
@@ -455,6 +457,7 @@ void lizard_eat(int num)
  * input: lizard number
  * output: N/A
  * Status: Incomplete - Make changes as you see are necessary.
+ * TODO:    Return from sago. Is it safe?
  */
 void monkeyGrass_2_sago_is_safe(int num)
 {
@@ -485,6 +488,7 @@ void monkeyGrass_2_sago_is_safe(int num)
  * input: lizard number
  * output: N/A
  * Status: Incomplete - Make changes as you see are necessary.
+ * TODO: Cross from grass to sago.
  */
 void cross_monkeyGrass_2_sago(int num)
 {
@@ -539,6 +543,7 @@ void cross_monkeyGrass_2_sago(int num)
  * input: lizard number
  * output: N/A
  * Status: Incomplete - Make changes as you see are necessary.
+ * TODO: Successfully made it to sago. Wake others?
  */
 void made_it_2_sago(int num)
 {
