@@ -93,6 +93,7 @@ void * lizardThread( void * param );
 /*
  * Declare global variables here
  */
+sem_t mutex;
 
 /**************************************************/
 /* Please leave these variables alone.  They are  */
@@ -152,15 +153,20 @@ int main(int argc, char **argv)
     /*
      * Initialize locks and/or semaphores
      */
-
+    sem_init(&mutex, 0, MAX_LIZARD_CROSSING);
 
 
 
     /*
      * Create NUM_LIZARDS lizard threads
      */
-
-
+    int i,j;
+    j = 1;
+    pthread_t lizards[NUM_LIZARDS];
+    for( i = 0; i < NUM_LIZARDS; i++){
+        pthread_create(&lizards[i], NULL, &lizardThread, (void *)(intptr_t)j);
+        j++;
+    }
 
 
 
@@ -226,9 +232,8 @@ void made_it_2_sago(int num);
  * output: N/A
  * Status: Incomplete - Make changes as you see are necessary.
  */
-void * lizardThread( void * param )
-{
-    int num = (int)param;
+void * lizardThread( void * param ) {
+    int num = (intptr_t)param;
 
     if (debug)
     {
@@ -236,8 +241,7 @@ void * lizardThread( void * param )
         fflush(stdout);
     }
 
-    while(running)
-    {
+    while(running) {
         /*
          * Follow the algorithm given in the assignment
          * using calls to the functions declared above.
@@ -245,25 +249,15 @@ void * lizardThread( void * param )
          * some functions by filling in the code.  Some
          * are already completed - see the comments.
          */
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        lizard_sleep(num);
+        monkeyGrass_2_sago_is_safe(num);
+        cross_sago_2_monkeyGrass(num);
+        lizard_eat(num);
+        sago_2_monkeyGrass_is_safe(num);
+        cross_monkeyGrass_2_sago(num);
     }
+
+
 
     pthread_exit(NULL);
 }
