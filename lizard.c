@@ -355,12 +355,12 @@ void cross_sago_2_monkeyGrass(int num)
     numCrossingSago2MonkeyGrass++;
     sem_post(&cross_mutex); //TODO: Add comment - Release counter
 
+
     /*
      * Check for too many lizards crossing
      */
     if (numCrossingSago2MonkeyGrass + numCrossingMonkeyGrass2Sago > MAX_LIZARD_CROSSING)
     {
-
         printf( "\tThe cats are happy - they have toys.\n" );
         printf( "\t%d crossing sago -> monkey grass\n", numCrossingSago2MonkeyGrass );
         exit( -1 );
