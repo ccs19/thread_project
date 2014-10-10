@@ -93,7 +93,7 @@ void * lizardThread( void * param );
 /*
  * Declare global variables here
  */
-sem_t road_mutex, cross_mut; //TODO: Add comment
+sem_t road_sem, cross_sem; //TODO: Add comment
 
 
 /**************************************************/
@@ -114,7 +114,6 @@ int running;
 
 
 
-buffer_t buffer;
 
 
 
@@ -161,8 +160,8 @@ int main(int argc, char **argv)
     /*
      * Initialize locks and/or semaphores
      */
-    sem_init(&road_mutex, 0, MAX_LIZARD_CROSSING);
-    sem_init(&cross_mut, 0, MAX_LIZARD_CROSSING);
+    sem_init(&road_sem, 0, MAX_LIZARD_CROSSING);
+    sem_init(&cross_sem, 0, MAX_LIZARD_CROSSING);
 
 
 
@@ -325,7 +324,7 @@ void sago_2_monkeyGrass_is_safe(int num)
         fflush( stdout );
     }
 
-
+    sem_wait(&road_sem);
 
 
     if (debug)
@@ -356,9 +355,8 @@ void cross_sago_2_monkeyGrass(int num)
     /*
      * One more crossing this way
      */
-    sem_wait(&cross_mut); //TODO: Add comment - Prevent counter mismatch.
+    sem_wait(&cross_sem); //TODO: Add comment - Prevent counter mismatch.
     numCrossingSago2MonkeyGrass++;
-    sem_post(&cross_mut); //TODO: Add comment - Release counter
 
 
     /*
@@ -393,8 +391,8 @@ void cross_sago_2_monkeyGrass(int num)
      */
 
     numCrossingSago2MonkeyGrass--;
-    sem_post(&uni_directional);
-    //sem_post(&cross_sem);//TODO: Add comment
+    sem_post(&cross_sem); //TODO: Add comment - Release counter
+
 }
 
 
@@ -507,9 +505,9 @@ void cross_monkeyGrass_2_sago(int num)
     /*
      * One more crossing this way
      */
-    sem_wait(&uni_directional);//TODO: Add comment
+    sem_wait(&cross_sem);//TODO: Add comment
     numCrossingMonkeyGrass2Sago++;
-    sem_post(&uni_directional);
+
 
     /*
      * Check for too many lizards crossing
@@ -540,9 +538,9 @@ void cross_monkeyGrass_2_sago(int num)
     /*
      * That one seems to have made it
      */
-    sem_wait(&cross_mut);//TODO: Add comment
+
     numCrossingMonkeyGrass2Sago--;
-    sem_post(&cross_mut);//TODO: Add comment
+    sem_post(&cross_sem);//TODO: Add comment
 }
 
 
@@ -555,7 +553,7 @@ void cross_monkeyGrass_2_sago(int num)
  */
 void made_it_2_sago(int num)
 {
-    sem_post(&road_mutex);//TODO: Add comment
+    sem_post(&road_sem);//TODO: Add comment
     /*
      * Whew, made it across
      */
