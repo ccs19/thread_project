@@ -113,6 +113,11 @@ int running;
 
 
 
+
+buffer_t buffer;
+
+
+
 /*
  * main()
  *
@@ -126,7 +131,7 @@ int main(int argc, char **argv)
     /*
      * Declare local variables
      */
-    int p;
+
     int i,j;
     pthread_t lizards[NUM_LIZARDS];
 
@@ -200,8 +205,8 @@ int main(int argc, char **argv)
      * Delete the locks and semaphores
      */
 
-    sem_destroy(&road_mutex);
-    sem_destroy(&cross_mut);
+    sem_destroy(&road_sem);
+    sem_destroy(&cross_sem);
 
     /*
      * Exit happily
@@ -320,7 +325,7 @@ void sago_2_monkeyGrass_is_safe(int num)
         fflush( stdout );
     }
 
-    sem_wait(&road_mutex); //TODO: Add comment
+
 
 
     if (debug)
@@ -386,11 +391,10 @@ void cross_sago_2_monkeyGrass(int num)
     /*
      * That one seems to have made it
      */
-    sem_wait(&cross_mut);//TODO: Add comment
 
     numCrossingSago2MonkeyGrass--;
-
-    sem_post(&cross_mut);//TODO: Add comment
+    sem_post(&uni_directional);
+    //sem_post(&cross_sem);//TODO: Add comment
 }
 
 
@@ -404,7 +408,7 @@ void cross_sago_2_monkeyGrass(int num)
  */
 void made_it_2_monkeyGrass(int num)
 {
-    sem_post(&road_mutex);//TODO: Add comment
+    sem_post(&road_sem);//TODO: Add comment
     /*
      * Whew, made it across
      */
@@ -469,7 +473,7 @@ void monkeyGrass_2_sago_is_safe(int num)
         fflush( stdout );
     }
 
-    sem_wait(&road_mutex);//TODO: Add comment
+    sem_wait(&road_sem);//TODO: Add comment
 
 
 
@@ -503,9 +507,9 @@ void cross_monkeyGrass_2_sago(int num)
     /*
      * One more crossing this way
      */
-    sem_wait(&cross_mut);//TODO: Add comment
+    sem_wait(&uni_directional);//TODO: Add comment
     numCrossingMonkeyGrass2Sago++;
-    sem_post(&cross_mut);//TODO: Add comment
+    sem_post(&uni_directional);
 
     /*
      * Check for too many lizards crossing

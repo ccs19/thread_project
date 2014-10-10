@@ -5,9 +5,9 @@ NAME = lizard
 TODELETE = $(NAME) *.o
 LIBS = -lpthread
 
-$(NAME) : $(OBJECTS)
-	$(CC) $(CFLAGS) $(OBJECTS) -o $(NAME) $(LIBS)
+mt-collatz : $(OBJECTS)
+$(CC) $(CFLAGS) $(OBJECTS) -o $(NAME) $(LIBS)
 
 .PHONY: clean
 clean:
-	rm $(TODELETE)
+        rm -f $(TODELETE)
