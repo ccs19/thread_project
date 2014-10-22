@@ -58,7 +58,7 @@ typedef int direction;
  * Make this 1 to check for lizards traving in both directions
  * Leave it 0 to allow bidirectional travel
  */
-#define UNIDIRECTIONAL       0
+#define UNIDIRECTIONAL       1
 
 /*
  * Set this to the number of seconds you want the lizard world to
@@ -391,14 +391,14 @@ void cross_sago_2_monkeyGrass(int num)
     pthread_mutex_lock(&mute);
 
     /*If too many lizards, wait*/
-    while(numCrossingMonkeyGrass2Sago + numCrossingSago2MonkeyGrass > MAX_LIZARD_CROSSING)
-        pthread_cond_wait(&wait_add, &mute);
+    while(numCrossingMonkeyGrass2Sago > 0 || numCrossingMonkeyGrass2Sago + numCrossingSago2MonkeyGrass == MAX_LIZARD_CROSSING)
+        pthread_cond_wait(&wait_sago2monk, &mute);
 
     numCrossingSago2MonkeyGrass++;
 
     /*If more adders waiting, signal if safe to cross*/
-    if(numCrossingMonkeyGrass2Sago + numCrossingSago2MonkeyGrass < MAX_LIZARD_CROSSING)
-        pthread_cond_signal(&wait_add);
+    if(numCrossingSago2MonkeyGrass < MAX_LIZARD_CROSSING)
+        pthread_cond_signal(&wait_sago2monk);
 
 
     pthread_mutex_unlock(&mute);
@@ -442,11 +442,10 @@ void cross_sago_2_monkeyGrass(int num)
 
     pthread_mutex_lock(&mute);
     numCrossingSago2MonkeyGrass--;
-    pthread_mutex_unlock(&mute);
-    pthread_cond_signal(&wait_add);
-    if(numCrossingSago2MonkeyGrass == 0)
-        pthread_cond_broadcast(&wait_monk2sago);
 
+    if(numCrossingSago2MonkeyGrass == 0)
+        pthread_cond_signal(&wait_monk2sago);
+    pthread_mutex_unlock(&mute);
     sem_post(&cross_sem); //TODO: Add comment - Release counter
 
 }
@@ -569,14 +568,15 @@ void cross_monkeyGrass_2_sago(int num)
 
 
     //If greater than MAX, wait.
-    while(numCrossingMonkeyGrass2Sago + numCrossingSago2MonkeyGrass > MAX_LIZARD_CROSSING)
-        pthread_cond_wait(&wait_add, &mute);
+    while(numCrossingSago2MonkeyGrass > 0 || numCrossingMonkeyGrass2Sago + numCrossingSago2MonkeyGrass == MAX_LIZARD_CROSSING)
+        pthread_cond_wait(&wait_monk2sago, &mute);
     numCrossingMonkeyGrass2Sago++;
 
 
+
     //If more room, signal another waiting adder.
-    if(numCrossingMonkeyGrass2Sago + numCrossingSago2MonkeyGrass < MAX_LIZARD_CROSSING)
-        pthread_cond_signal(&wait_add);
+    if(numCrossingMonkeyGrass2Sago < MAX_LIZARD_CROSSING)
+        pthread_cond_signal(&wait_monk2sago);
     pthread_mutex_unlock(&mute);
 
 
@@ -622,12 +622,11 @@ void cross_monkeyGrass_2_sago(int num)
 
 
     //Signal any adders, if they're waiting.
-    pthread_cond_signal(&wait_add);
+    if(numCrossingMonkeyGrass2Sago == 0)
+        pthread_cond_signal(&wait_sago2monk);
 
     //Release lock
     pthread_mutex_unlock(&mute);
-
-
     sem_post(&cross_sem);//TODO: Add comment
 }
 
