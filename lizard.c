@@ -50,6 +50,9 @@ void * lizardThread( void * param );
 /*
  * Define "constant" values here
  */
+typedef int direction;
+#define monk2sago 0
+#define sago2monk 1
 
 /*
  * Make this 1 to check for lizards traving in both directions
@@ -95,8 +98,8 @@ void * lizardThread( void * param );
  * Declare global variables here
  */
 sem_t road_sem, cross_sem; //TODO: Add comment
-pthread_mutex_t mute;
-pthread_cond_t wait_add;
+pthread_mutex_t mute, cross_guard;
+pthread_cond_t wait_add, wait_sago2monk, wait_monk2sago;
 
 
 
@@ -233,6 +236,24 @@ void cross_monkeyGrass_2_sago(int num);
 void made_it_2_sago(int num);
 
 
+
+
+
+
+/* Monitor to toggle bi-directional movement*/
+/* Not complete, not tested */
+
+void crossingGuard(direction d){
+    if(d == monk2sago){
+        if(numCrossingSago2MonkeyGrass > 0)
+            pthread_cond_wait(&wait_monk2sago, &cross_guard);
+    }
+    if(d == sago2monk){
+        if(numCrossingMonkeyGrass2Sago > 0)
+            pthread_cond_wait(&wait_sago2monk, &cross_guard);
+    }
+}
+
 /*
  * lizardThread()
  *
@@ -357,14 +378,34 @@ void cross_sago_2_monkeyGrass(int num)
     /*
      * One more crossing this way
      */
+
+
+
+    /* Lock semaphore */
     sem_wait(&cross_sem); //TODO: Add comment - Prevent counter mismatch.
 
+
+
+    /**** // BEGIN LOCK // ****/
+    /**** // Attempt to acquire lock // ****/
     pthread_mutex_lock(&mute);
+
+    /*If too many lizards, wait*/
     while(numCrossingMonkeyGrass2Sago + numCrossingSago2MonkeyGrass > MAX_LIZARD_CROSSING)
         pthread_cond_wait(&wait_add, &mute);
+
     numCrossingSago2MonkeyGrass++;
+
+    /*If more adders waiting, signal if safe to cross*/
+    if(numCrossingMonkeyGrass2Sago + numCrossingSago2MonkeyGrass < MAX_LIZARD_CROSSING)
+        pthread_cond_signal(&wait_add);
+
+
     pthread_mutex_unlock(&mute);
-//    pthread_cond_signal(&wait_sub);
+    /**** // END LOCK // ****/
+
+
+
 
     /*
      * Check for too many lizards crossing
@@ -397,10 +438,14 @@ void cross_sago_2_monkeyGrass(int num)
      * That one seems to have made it
      */
 
-    pthread_mutex_unlock(&mute);
+
+
+    pthread_mutex_lock(&mute);
     numCrossingSago2MonkeyGrass--;
     pthread_mutex_unlock(&mute);
     pthread_cond_signal(&wait_add);
+    if(numCrossingSago2MonkeyGrass == 0)
+        pthread_cond_broadcast(&wait_monk2sago);
 
     sem_post(&cross_sem); //TODO: Add comment - Release counter
 
@@ -516,15 +561,27 @@ void cross_monkeyGrass_2_sago(int num)
     /*
      * One more crossing this way
      */
-    sem_wait(&cross_sem);//TODO: Add comment
+    sem_wait(&cross_sem);
 
 
+    //Attempt to acquire lock
     pthread_mutex_lock(&mute);
+
+
+    //If greater than MAX, wait.
     while(numCrossingMonkeyGrass2Sago + numCrossingSago2MonkeyGrass > MAX_LIZARD_CROSSING)
         pthread_cond_wait(&wait_add, &mute);
     numCrossingMonkeyGrass2Sago++;
+
+
+    //If more room, signal another waiting adder.
+    if(numCrossingMonkeyGrass2Sago + numCrossingSago2MonkeyGrass < MAX_LIZARD_CROSSING)
+        pthread_cond_signal(&wait_add);
     pthread_mutex_unlock(&mute);
-    //pthread_cond_signal(&wait_sub);
+
+
+
+
 
     /*
      * Check for too many lizards crossing
@@ -555,10 +612,21 @@ void cross_monkeyGrass_2_sago(int num)
     /*
      * That one seems to have made it
      */
+
+
+    /******* BEGIN LOCK*******/
+
+    //Acquire lock for counter.
     pthread_mutex_lock(&mute);
     numCrossingMonkeyGrass2Sago--;
-    pthread_mutex_unlock(&mute);
+
+
+    //Signal any adders, if they're waiting.
     pthread_cond_signal(&wait_add);
+
+    //Release lock
+    pthread_mutex_unlock(&mute);
+
 
     sem_post(&cross_sem);//TODO: Add comment
 }
