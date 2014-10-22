@@ -58,7 +58,7 @@ typedef int direction;
  * Make this 1 to check for lizards traving in both directions
  * Leave it 0 to allow bidirectional travel
  */
-#define UNIDIRECTIONAL       1
+#define UNIDIRECTIONAL       0
 
 /*
  * Set this to the number of seconds you want the lizard world to
@@ -98,7 +98,7 @@ typedef int direction;
  * Declare global variables here
  */
 sem_t road_sem, cross_sem; //TODO: Add comment
-pthread_mutex_t mute, cross_guard;
+pthread_mutex_t mute;
 pthread_cond_t wait_add, wait_sago2monk, wait_monk2sago;
 
 
@@ -239,21 +239,6 @@ void made_it_2_sago(int num);
 
 
 
-
-/* Monitor to toggle bi-directional movement*/
-/* Not complete, not tested */
-
-void crossingGuard(direction d){
-    if(d == monk2sago){
-        if(numCrossingSago2MonkeyGrass > 0)
-            pthread_cond_wait(&wait_monk2sago, &cross_guard);
-    }
-    if(d == sago2monk){
-        if(numCrossingMonkeyGrass2Sago > 0)
-            pthread_cond_wait(&wait_sago2monk, &cross_guard);
-    }
-}
-
 /*
  * lizardThread()
  *
@@ -382,27 +367,43 @@ void cross_sago_2_monkeyGrass(int num)
 
 
     /* Lock semaphore */
-    sem_wait(&cross_sem); //TODO: Add comment - Prevent counter mismatch.
+    sem_wait(&cross_sem);
 
 
-
-    /**** // BEGIN LOCK // ****/
     /**** // Attempt to acquire lock // ****/
     pthread_mutex_lock(&mute);
 
-    /*If too many lizards, wait*/
-    while(numCrossingMonkeyGrass2Sago > 0 || numCrossingMonkeyGrass2Sago + numCrossingSago2MonkeyGrass == MAX_LIZARD_CROSSING)
-        pthread_cond_wait(&wait_sago2monk, &mute);
-
-    numCrossingSago2MonkeyGrass++;
-
-    /*If more adders waiting, signal if safe to cross*/
-    if(numCrossingSago2MonkeyGrass < MAX_LIZARD_CROSSING)
-        pthread_cond_signal(&wait_sago2monk);
 
 
+    /*Code for UNIDIRECTIONAL movement*/
+    if(UNIDIRECTIONAL) {
+
+        while (numCrossingMonkeyGrass2Sago > 0 || numCrossingMonkeyGrass2Sago + numCrossingSago2MonkeyGrass == MAX_LIZARD_CROSSING)
+            pthread_cond_wait(&wait_sago2monk, &mute);
+
+        numCrossingSago2MonkeyGrass++;
+
+        if (numCrossingSago2MonkeyGrass < MAX_LIZARD_CROSSING)
+            pthread_cond_signal(&wait_sago2monk);
+    }
+
+
+
+    /*Code for BIDIRECTIONAL movement*/
+    else{
+        while(numCrossingMonkeyGrass2Sago + numCrossingSago2MonkeyGrass > MAX_LIZARD_CROSSING)
+            pthread_cond_wait(&wait_add, &mute);
+
+        numCrossingSago2MonkeyGrass++;
+
+        /*If more adders waiting, signal if safe to cross*/
+        if(numCrossingMonkeyGrass2Sago + numCrossingSago2MonkeyGrass < MAX_LIZARD_CROSSING)
+            pthread_cond_signal(&wait_add);
+    }
+
+    /*Release lock on counter*/
     pthread_mutex_unlock(&mute);
-    /**** // END LOCK // ****/
+
 
 
 
@@ -443,8 +444,18 @@ void cross_sago_2_monkeyGrass(int num)
     pthread_mutex_lock(&mute);
     numCrossingSago2MonkeyGrass--;
 
-    if(numCrossingSago2MonkeyGrass == 0)
-        pthread_cond_signal(&wait_monk2sago);
+
+    /*Code for UNIDIRECTIONAL movement*/
+    if(UNIDIRECTIONAL) {
+        if (numCrossingSago2MonkeyGrass == 0)
+            pthread_cond_broadcast(&wait_monk2sago);
+    }
+
+
+    /*Code for BIDIRECTIONAL movement*/
+    else
+        pthread_cond_signal(&wait_add);
+
     pthread_mutex_unlock(&mute);
     sem_post(&cross_sem); //TODO: Add comment - Release counter
 
@@ -547,12 +558,10 @@ void monkeyGrass_2_sago_is_safe(int num)
  * input: lizard number
  * output: N/A
  */
-void cross_monkeyGrass_2_sago(int num)
-{
-    if (debug)
-    {
-        printf( "[%2d] crossing  monkey grass -> sago\n", num );
-        fflush( stdout );
+void cross_monkeyGrass_2_sago(int num) {
+    if (debug) {
+        printf("[%2d] crossing  monkey grass -> sago\n", num);
+        fflush(stdout);
     }
 
 
@@ -567,16 +576,26 @@ void cross_monkeyGrass_2_sago(int num)
     pthread_mutex_lock(&mute);
 
 
-    //If greater than MAX, wait.
-    while(numCrossingSago2MonkeyGrass > 0 || numCrossingMonkeyGrass2Sago + numCrossingSago2MonkeyGrass == MAX_LIZARD_CROSSING)
-        pthread_cond_wait(&wait_monk2sago, &mute);
-    numCrossingMonkeyGrass2Sago++;
+    /*Code for unidirectional movement*/
+    if (UNIDIRECTIONAL) {
+        while (numCrossingSago2MonkeyGrass > 0 || numCrossingMonkeyGrass2Sago + numCrossingSago2MonkeyGrass == MAX_LIZARD_CROSSING)
+            pthread_cond_wait(&wait_monk2sago, &mute);
+        numCrossingMonkeyGrass2Sago++;
+        if (numCrossingMonkeyGrass2Sago < MAX_LIZARD_CROSSING)
+            pthread_cond_signal(&wait_monk2sago);
+    }
 
+    /*Code for bi-directional movement*/
+    else {
+        while (numCrossingMonkeyGrass2Sago + numCrossingSago2MonkeyGrass > MAX_LIZARD_CROSSING)
+            pthread_cond_wait(&wait_add, &mute);
+        numCrossingMonkeyGrass2Sago++;
+        //If more room, signal another waiting adder.
+        if (numCrossingMonkeyGrass2Sago + numCrossingSago2MonkeyGrass < MAX_LIZARD_CROSSING)
+            pthread_cond_signal(&wait_add);
+    }
 
-
-    //If more room, signal another waiting adder.
-    if(numCrossingMonkeyGrass2Sago < MAX_LIZARD_CROSSING)
-        pthread_cond_signal(&wait_monk2sago);
+    //Release lock
     pthread_mutex_unlock(&mute);
 
 
@@ -586,48 +605,52 @@ void cross_monkeyGrass_2_sago(int num)
     /*
      * Check for too many lizards crossing
      */
-    if (numCrossingMonkeyGrass2Sago + numCrossingSago2MonkeyGrass > MAX_LIZARD_CROSSING)
-    {
-        printf( "\tThe cats say yum! - they love lizards.\n" );
-        printf( "\t%d crossing monkey grass -> sago\n", numCrossingMonkeyGrass2Sago );
-        exit( -1 );
+    if (numCrossingMonkeyGrass2Sago + numCrossingSago2MonkeyGrass > MAX_LIZARD_CROSSING) {
+        printf("\tThe cats say yum! - they love lizards.\n");
+        printf("\t%d crossing monkey grass -> sago\n", numCrossingMonkeyGrass2Sago);
+        exit(-1);
     }
 
     /*
     * Check for lizards cross both ways
     */
-    if (numCrossingSago2MonkeyGrass && UNIDIRECTIONAL)
-    {
-        printf( "\tOh No!, the lizards have cats all over them.\n" );
-        printf( "\t%d crossing sago -> monkey grass\n", numCrossingSago2MonkeyGrass );
-        printf( "\t%d crossing monkey grass -> sago\n", numCrossingMonkeyGrass2Sago );
-        exit( -1 );
+    if (numCrossingSago2MonkeyGrass && UNIDIRECTIONAL) {
+        printf("\tOh No!, the lizards have cats all over them.\n");
+        printf("\t%d crossing sago -> monkey grass\n", numCrossingSago2MonkeyGrass);
+        printf("\t%d crossing monkey grass -> sago\n", numCrossingMonkeyGrass2Sago);
+        exit(-1);
     }
 
     /*
      * It takes a while to cross, so simulate it
      */
-    sleep( CROSS_SECONDS );
+    sleep(CROSS_SECONDS);
 
     /*
      * That one seems to have made it
      */
 
 
-    /******* BEGIN LOCK*******/
-
-    //Acquire lock for counter.
+    /*Acquire lock for counter.*/
     pthread_mutex_lock(&mute);
     numCrossingMonkeyGrass2Sago--;
 
+    /*Code for UNIDIRECTIONAL movement*/
+    if (UNIDIRECTIONAL) {
+        if (numCrossingMonkeyGrass2Sago == 0)
+            pthread_cond_broadcast(&wait_sago2monk);
+    }
 
-    //Signal any adders, if they're waiting.
-    if(numCrossingMonkeyGrass2Sago == 0)
-        pthread_cond_signal(&wait_sago2monk);
+    /*Code for BIDIRECTIONAL movement*/
+    else
+        pthread_cond_signal(&wait_add);
 
-    //Release lock
+
+    /*Release lock*/
     pthread_mutex_unlock(&mute);
-    sem_post(&cross_sem);//TODO: Add comment
+    sem_post(&cross_sem);
+
+
 }
 
 
@@ -653,6 +676,5 @@ void made_it_2_sago(int num)
 
 
 }
-
 
 
