@@ -45,6 +45,10 @@
  * You may need more functions, but I don't think so
  */
 void * lizardThread( void * param );
+
+/*Added these functions to make reading and debugging code easier.*/
+/*Function descriptions are available in the text above each function*/
+/*Schneider Sherrell*/
 void m2sago_lock();
 void m2sago_unlock();
 void sago2m_lock();
@@ -54,15 +58,13 @@ void sago2m_unlock();
 /*
  * Define "constant" values here
  */
-typedef int direction;
-#define monk2sago 0
-#define sago2monk 1
+
 
 /*
  * Make this 1 to check for lizards traving in both directions
  * Leave it 0 to allow bidirectional travel
  */
-#define UNIDIRECTIONAL       0
+#define UNIDIRECTIONAL       1
 
 /*
  * Set this to the number of seconds you want the lizard world to
@@ -101,8 +103,12 @@ typedef int direction;
 /*
  * Declare global variables here
  */
-sem_t road_sem, cross_sem; //TODO: Add comment
+
+
+sem_t road_sem;
 pthread_mutex_t mute;
+
+/*Pthread locks*/
 pthread_cond_t wait_add, wait_sago2monk, wait_monk2sago;
 
 
@@ -168,10 +174,9 @@ int main(int argc, char **argv)
 
 
     /*
-     * Initialize locks and/or semaphores
+     * Initialize locks and/or semaphores Schneider Sherrell
      */
     sem_init(&road_sem, 0, MAX_LIZARD_CROSSING);
-    sem_init(&cross_sem, 0, MAX_LIZARD_CROSSING);
 
 
     /*
@@ -214,7 +219,6 @@ int main(int argc, char **argv)
      */
 
     sem_destroy(&road_sem);
-    sem_destroy(&cross_sem);
 
     /*
      * Exit happily
@@ -272,12 +276,15 @@ void * lizardThread( void * param ) {
          */
         lizard_sleep(num);
 
+        /*Schneider Sherrell*/
+        /*Check if safe, then cross, then report if safely made it*/
         sago_2_monkeyGrass_is_safe(num);
-        cross_sago_2_monkeyGrass(num); //TODO: Add comment?
+        cross_sago_2_monkeyGrass(num);
         made_it_2_monkeyGrass(num);
 
         lizard_eat(num);
 
+        /*Check if safe, then cross, then report if safely made it*/
         monkeyGrass_2_sago_is_safe(num);
         cross_monkeyGrass_2_sago(num);
         made_it_2_sago(num);
@@ -337,7 +344,7 @@ void sago_2_monkeyGrass_is_safe(int num)
     }
 
 
-    /*ss: Try to acquire lock*/
+    /*Try to acquire lock  Schneider Sherrell*/
     sem_wait(&road_sem);
 
 
@@ -369,9 +376,7 @@ void cross_sago_2_monkeyGrass(int num)
      */
 
 
-    /* Lock semaphore */
-    //sem_wait(&cross_sem);
-
+    /*Call lock function  Schneider Sherrell*/
     sago2m_lock();
 
 
@@ -410,7 +415,6 @@ void cross_sago_2_monkeyGrass(int num)
 
 
     sago2m_unlock();
-    //sem_post(&cross_sem); //TODO: Add comment - Release counter
 
 }
 
@@ -425,7 +429,10 @@ void cross_sago_2_monkeyGrass(int num)
  */
 void made_it_2_monkeyGrass(int num)
 {
-    sem_post(&road_sem);//TODO: Add comment
+
+    /*Increment semaphore lock. Schneider Sherrell*/
+    sem_post(&road_sem);
+
     /*
      * Whew, made it across
      */
@@ -490,6 +497,8 @@ void monkeyGrass_2_sago_is_safe(int num)
         fflush( stdout );
     }
 
+
+    /*See if crossing is safe. Schneider Sherrell*/
     sem_wait(&road_sem);//TODO: Add comment
 
 
@@ -522,9 +531,9 @@ void cross_monkeyGrass_2_sago(int num) {
     /*
      * One more crossing this way
      */
-    //sem_wait(&cross_sem);
 
-    m2sago_lock(); /*Lock counter*/
+    /*Call lock function Schneider Sherrell*/
+    m2sago_lock();
 
 
     /*
@@ -556,8 +565,7 @@ void cross_monkeyGrass_2_sago(int num) {
      */
 
 
-    m2sago_unlock(); /*Finished crossing. Call unlock function*/
-    //sem_post(&cross_sem);
+    m2sago_unlock(); /*Finished crossing. Call unlock function Schneider Sherrell*/
 
 
 }
@@ -590,7 +598,7 @@ void made_it_2_sago(int num)
 
 
 
-/*
+/* Schneider Sherrell
  * m2sago_lock()
  *
  * Locks the counter, increments, and executes a lizard crossing or waits if
@@ -599,6 +607,9 @@ void made_it_2_sago(int num)
  * output: none
  */
 void m2sago_lock(){
+
+
+
     /*Acquire lock*/
     pthread_mutex_lock(&mute);
 
@@ -624,13 +635,13 @@ void m2sago_lock(){
             pthread_cond_signal(&wait_add);
     }
 
-    //Release lock
+    /*Release lock*/
     pthread_mutex_unlock(&mute);
 }
 
 
 
-/*
+/* Schneider Sherrell
  * m2sago_unlock()
  *
  * Locks the counter, decrements, and signals any waiting lizards
@@ -651,7 +662,7 @@ void m2sago_unlock(){
 
         /*Code for BIDIRECTIONAL movement*/
     else
-        pthread_cond_signal(&wait_add);
+        pthread_cond_broadcast(&wait_add);
 
 
     /*Release lock*/
@@ -665,7 +676,7 @@ void m2sago_unlock(){
 
 
 
-/*
+/* Schneider Sherrell
  * sago2m_lock()
  *
  * Locks the counter, increments, and executes a lizard crossing or waits if
@@ -703,7 +714,7 @@ void sago2m_lock(){
 
         /*If more adders waiting, signal if safe to cross*/
         if(numCrossingMonkeyGrass2Sago + numCrossingSago2MonkeyGrass < MAX_LIZARD_CROSSING)
-            pthread_cond_signal(&wait_add);
+            pthread_cond_broadcast(&wait_add);
     }
 
     /*Release lock*/
@@ -714,7 +725,7 @@ void sago2m_lock(){
 
 
 
-/*
+/* Schneider Sherrell
  * sago2m_unlock()
  *
  * Locks the counter, decrements, and signals any waiting lizards.
@@ -732,13 +743,15 @@ void sago2m_unlock(){
     /*Code for UNIDIRECTIONAL movement*/
     if(UNIDIRECTIONAL) {
         if (numCrossingSago2MonkeyGrass == 0)
+            /*If none crossing opposite direction, safe to wake all*/
             pthread_cond_broadcast(&wait_monk2sago);
     }
 
 
     /*Code for BIDIRECTIONAL movement*/
     else
-        pthread_cond_signal(&wait_add);
+        /*Wake a thread if waiting*/
+        pthread_cond_broadcast(&wait_add);
 
     /*Release lock*/
     pthread_mutex_unlock(&mute);
