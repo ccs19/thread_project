@@ -1,4 +1,4 @@
-//***************************************************************/
+/***************************************************************/
 /*                                                             */
 /* lizard.c                                                    */
 /*                                                             */
@@ -45,6 +45,10 @@
  * You may need more functions, but I don't think so
  */
 void * lizardThread( void * param );
+void m2sago_lock();
+void m2sago_unlock();
+void sago2m_lock();
+void sago2m_unlock();
 
 
 /*
@@ -332,6 +336,8 @@ void sago_2_monkeyGrass_is_safe(int num)
         fflush( stdout );
     }
 
+
+    /*ss: Try to acquire lock*/
     sem_wait(&road_sem);
 
 
@@ -358,53 +364,15 @@ void cross_sago_2_monkeyGrass(int num)
         printf( "[%2d] crossing  sago -> monkey grass\n", num );
         fflush( stdout );
     }
-
-
     /*
      * One more crossing this way
      */
 
 
-
     /* Lock semaphore */
-    sem_wait(&cross_sem);
+    //sem_wait(&cross_sem);
 
-
-    /**** // Attempt to acquire lock // ****/
-    pthread_mutex_lock(&mute);
-
-
-
-    /*Code for UNIDIRECTIONAL movement*/
-    if(UNIDIRECTIONAL) {
-
-        while (numCrossingMonkeyGrass2Sago > 0 || numCrossingMonkeyGrass2Sago + numCrossingSago2MonkeyGrass == MAX_LIZARD_CROSSING)
-            pthread_cond_wait(&wait_sago2monk, &mute);
-
-        numCrossingSago2MonkeyGrass++;
-
-        if (numCrossingSago2MonkeyGrass < MAX_LIZARD_CROSSING)
-            pthread_cond_signal(&wait_sago2monk);
-    }
-
-
-
-    /*Code for BIDIRECTIONAL movement*/
-    else{
-        while(numCrossingMonkeyGrass2Sago + numCrossingSago2MonkeyGrass > MAX_LIZARD_CROSSING)
-            pthread_cond_wait(&wait_add, &mute);
-
-        numCrossingSago2MonkeyGrass++;
-
-        /*If more adders waiting, signal if safe to cross*/
-        if(numCrossingMonkeyGrass2Sago + numCrossingSago2MonkeyGrass < MAX_LIZARD_CROSSING)
-            pthread_cond_signal(&wait_add);
-    }
-
-    /*Release lock on counter*/
-    pthread_mutex_unlock(&mute);
-
-
+    sago2m_lock();
 
 
 
@@ -441,23 +409,8 @@ void cross_sago_2_monkeyGrass(int num)
 
 
 
-    pthread_mutex_lock(&mute);
-    numCrossingSago2MonkeyGrass--;
-
-
-    /*Code for UNIDIRECTIONAL movement*/
-    if(UNIDIRECTIONAL) {
-        if (numCrossingSago2MonkeyGrass == 0)
-            pthread_cond_broadcast(&wait_monk2sago);
-    }
-
-
-    /*Code for BIDIRECTIONAL movement*/
-    else
-        pthread_cond_signal(&wait_add);
-
-    pthread_mutex_unlock(&mute);
-    sem_post(&cross_sem); //TODO: Add comment - Release counter
+    sago2m_unlock();
+    //sem_post(&cross_sem); //TODO: Add comment - Release counter
 
 }
 
@@ -569,37 +522,9 @@ void cross_monkeyGrass_2_sago(int num) {
     /*
      * One more crossing this way
      */
-    sem_wait(&cross_sem);
+    //sem_wait(&cross_sem);
 
-
-    //Attempt to acquire lock
-    pthread_mutex_lock(&mute);
-
-
-    /*Code for unidirectional movement*/
-    if (UNIDIRECTIONAL) {
-        while (numCrossingSago2MonkeyGrass > 0 || numCrossingMonkeyGrass2Sago + numCrossingSago2MonkeyGrass == MAX_LIZARD_CROSSING)
-            pthread_cond_wait(&wait_monk2sago, &mute);
-        numCrossingMonkeyGrass2Sago++;
-        if (numCrossingMonkeyGrass2Sago < MAX_LIZARD_CROSSING)
-            pthread_cond_signal(&wait_monk2sago);
-    }
-
-    /*Code for bi-directional movement*/
-    else {
-        while (numCrossingMonkeyGrass2Sago + numCrossingSago2MonkeyGrass > MAX_LIZARD_CROSSING)
-            pthread_cond_wait(&wait_add, &mute);
-        numCrossingMonkeyGrass2Sago++;
-        //If more room, signal another waiting adder.
-        if (numCrossingMonkeyGrass2Sago + numCrossingSago2MonkeyGrass < MAX_LIZARD_CROSSING)
-            pthread_cond_signal(&wait_add);
-    }
-
-    //Release lock
-    pthread_mutex_unlock(&mute);
-
-
-
+    m2sago_lock(); /*Lock counter*/
 
 
     /*
@@ -631,24 +556,8 @@ void cross_monkeyGrass_2_sago(int num) {
      */
 
 
-    /*Acquire lock for counter.*/
-    pthread_mutex_lock(&mute);
-    numCrossingMonkeyGrass2Sago--;
-
-    /*Code for UNIDIRECTIONAL movement*/
-    if (UNIDIRECTIONAL) {
-        if (numCrossingMonkeyGrass2Sago == 0)
-            pthread_cond_broadcast(&wait_sago2monk);
-    }
-
-    /*Code for BIDIRECTIONAL movement*/
-    else
-        pthread_cond_signal(&wait_add);
-
-
-    /*Release lock*/
-    pthread_mutex_unlock(&mute);
-    sem_post(&cross_sem);
+    m2sago_unlock(); /*Finished crossing. Call unlock function*/
+    //sem_post(&cross_sem);
 
 
 }
@@ -678,3 +587,159 @@ void made_it_2_sago(int num)
 }
 
 
+
+
+
+/*
+ * m2sago_lock()
+ *
+ * Locks the counter, increments, and executes a lizard crossing or waits if
+ * needed.
+ * input: none
+ * output: none
+ */
+void m2sago_lock(){
+    /*Acquire lock*/
+    pthread_mutex_lock(&mute);
+
+
+    /*Code for unidirectional movement*/
+    if (UNIDIRECTIONAL) {
+        while (numCrossingSago2MonkeyGrass > 0 || numCrossingMonkeyGrass2Sago + numCrossingSago2MonkeyGrass == MAX_LIZARD_CROSSING)
+            pthread_cond_wait(&wait_monk2sago, &mute);
+        numCrossingMonkeyGrass2Sago++;
+        if (numCrossingMonkeyGrass2Sago < MAX_LIZARD_CROSSING)
+
+            /*Wake all waiting lizards*/
+            pthread_cond_broadcast(&wait_monk2sago);
+    }
+
+        /*Code for bi-directional movement*/
+    else {
+        while (numCrossingMonkeyGrass2Sago + numCrossingSago2MonkeyGrass > MAX_LIZARD_CROSSING)
+            pthread_cond_wait(&wait_add, &mute);
+        numCrossingMonkeyGrass2Sago++;
+        //If more room, signal another waiting adder.
+        if (numCrossingMonkeyGrass2Sago + numCrossingSago2MonkeyGrass < MAX_LIZARD_CROSSING)
+            pthread_cond_signal(&wait_add);
+    }
+
+    //Release lock
+    pthread_mutex_unlock(&mute);
+}
+
+
+
+/*
+ * m2sago_unlock()
+ *
+ * Locks the counter, decrements, and signals any waiting lizards
+ * input: none
+ * output: none
+ */
+void m2sago_unlock(){
+
+    /*Acquire lock for counter.*/
+    pthread_mutex_lock(&mute);
+    numCrossingMonkeyGrass2Sago--;
+
+    /*Code for UNIDIRECTIONAL movement*/
+    if (UNIDIRECTIONAL) {
+        if (numCrossingMonkeyGrass2Sago == 0)
+            pthread_cond_broadcast(&wait_sago2monk);
+    }
+
+        /*Code for BIDIRECTIONAL movement*/
+    else
+        pthread_cond_signal(&wait_add);
+
+
+    /*Release lock*/
+    pthread_mutex_unlock(&mute);
+
+
+
+}
+
+
+
+
+
+/*
+ * sago2m_lock()
+ *
+ * Locks the counter, increments, and executes a lizard crossing or waits if
+ * needed.
+ * input: none
+ * output: none
+ */
+void sago2m_lock(){
+    /**** // Acquire lock // ****/
+    pthread_mutex_lock(&mute);
+
+
+
+    /*Code for UNIDIRECTIONAL movement*/
+    if(UNIDIRECTIONAL) {
+
+        while (numCrossingMonkeyGrass2Sago > 0 || numCrossingMonkeyGrass2Sago + numCrossingSago2MonkeyGrass == MAX_LIZARD_CROSSING)
+            pthread_cond_wait(&wait_sago2monk, &mute);
+
+        numCrossingSago2MonkeyGrass++;
+
+        /*Wake all waiting lizards*/
+        if (numCrossingSago2MonkeyGrass < MAX_LIZARD_CROSSING)
+            pthread_cond_broadcast(&wait_sago2monk);
+    }
+
+
+
+        /*Code for BIDIRECTIONAL movement*/
+    else{
+        while(numCrossingMonkeyGrass2Sago + numCrossingSago2MonkeyGrass > MAX_LIZARD_CROSSING)
+            pthread_cond_wait(&wait_add, &mute);
+
+        numCrossingSago2MonkeyGrass++;
+
+        /*If more adders waiting, signal if safe to cross*/
+        if(numCrossingMonkeyGrass2Sago + numCrossingSago2MonkeyGrass < MAX_LIZARD_CROSSING)
+            pthread_cond_signal(&wait_add);
+    }
+
+    /*Release lock*/
+    pthread_mutex_unlock(&mute);
+}
+
+
+
+
+
+/*
+ * sago2m_unlock()
+ *
+ * Locks the counter, decrements, and signals any waiting lizards.
+ * input: none
+ * output: none
+ */
+void sago2m_unlock(){
+    /*Acquire lock*/
+    pthread_mutex_lock(&mute);
+
+    /*Decrement counter*/
+    numCrossingSago2MonkeyGrass--;
+
+
+    /*Code for UNIDIRECTIONAL movement*/
+    if(UNIDIRECTIONAL) {
+        if (numCrossingSago2MonkeyGrass == 0)
+            pthread_cond_broadcast(&wait_monk2sago);
+    }
+
+
+    /*Code for BIDIRECTIONAL movement*/
+    else
+        pthread_cond_signal(&wait_add);
+
+    /*Release lock*/
+    pthread_mutex_unlock(&mute);
+}
