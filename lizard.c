@@ -71,7 +71,7 @@ void sago2m_unlock();
  * be simulated.
  * Try 30 for development and 120 for more thorough testing.
  */
-#define WORLDEND             600
+#define WORLDEND             30
 
 /*
  * Number of lizard threads to create
@@ -176,7 +176,15 @@ int main(int argc, char **argv)
     /*
      * Initialize locks and/or semaphores Schneider Sherrell
      */
+
+
     sem_init(&road_sem, 0, MAX_LIZARD_CROSSING);
+    if(UNIDIRECTIONAL){
+        pthread_mutex_init(&wait_monk2sago, NULL);
+        pthread_mutex_init(&wait_sago2monk, NULL);
+    }
+    else
+        pthread_mutex_init(&wait_add, NULL);
 
 
     /*
@@ -195,12 +203,14 @@ int main(int argc, char **argv)
     /*
      * Now let the world run for a while
      */
+
     sleep( WORLDEND );
 
 
     /*
      * That's it - the end of the world
      */
+
     running = 0;
 
 
@@ -218,7 +228,14 @@ int main(int argc, char **argv)
      * Delete the locks and semaphores
      */
 
+    /*Schneider Sherrell*/
     sem_destroy(&road_sem);
+    if(UNIDIRECTIONAL){
+        pthread_mutex_destroy(&wait_monk2sago);
+        pthread_mutex_destroy(&wait_sago2monk);
+    }
+    else
+        pthread_mutex_destroy(&wait_add);
 
     /*
      * Exit happily
@@ -499,7 +516,7 @@ void monkeyGrass_2_sago_is_safe(int num)
 
 
     /*See if crossing is safe. Schneider Sherrell*/
-    sem_wait(&road_sem);//TODO: Add comment
+    sem_wait(&road_sem);
 
 
 
@@ -580,7 +597,11 @@ void cross_monkeyGrass_2_sago(int num) {
  */
 void made_it_2_sago(int num)
 {
-    sem_post(&road_sem);//TODO: Add comment
+
+    /*Schneider Sherrell Increment Semaphore*/
+    sem_post(&road_sem);
+
+
     /*
      * Whew, made it across
      */
@@ -627,12 +648,12 @@ void m2sago_lock(){
 
         /*Code for bi-directional movement*/
     else {
-        while (numCrossingMonkeyGrass2Sago + numCrossingSago2MonkeyGrass > MAX_LIZARD_CROSSING)
+        while (numCrossingMonkeyGrass2Sago + numCrossingSago2MonkeyGrass >= MAX_LIZARD_CROSSING)
             pthread_cond_wait(&wait_add, &mute);
         numCrossingMonkeyGrass2Sago++;
         //If more room, signal another waiting adder.
         if (numCrossingMonkeyGrass2Sago + numCrossingSago2MonkeyGrass < MAX_LIZARD_CROSSING)
-            pthread_cond_signal(&wait_add);
+            pthread_cond_broadcast(&wait_add);
     }
 
     /*Release lock*/
@@ -707,7 +728,7 @@ void sago2m_lock(){
 
         /*Code for BIDIRECTIONAL movement*/
     else{
-        while(numCrossingMonkeyGrass2Sago + numCrossingSago2MonkeyGrass > MAX_LIZARD_CROSSING)
+        while(numCrossingMonkeyGrass2Sago + numCrossingSago2MonkeyGrass >= MAX_LIZARD_CROSSING)
             pthread_cond_wait(&wait_add, &mute);
 
         numCrossingSago2MonkeyGrass++;
